@@ -143,6 +143,8 @@ code { background: #ece3d0; padding: 1px 6px; border-radius: 5px; font-size: .9e
 
 .foot { border-top: 1px solid var(--line); padding: 22px clamp(16px, 4vw, 48px) 32px; color: var(--muted); font-size: 14px; }
 .foot p { margin: 0 0 4px; }
+.foot .credit { font: 700 22px "Aref Ruqaa", "Tajawal", serif; color: var(--ink); margin-bottom: 10px; }
+.foot .credit strong { color: var(--terra); }
 
 @media (max-width: 860px) {
   .cols { grid-template-columns: 1fr; gap: 24px; }
