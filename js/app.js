@@ -1,13 +1,13 @@
 (function () {
   const app = document.getElementById("app");
   const M = window.MUSEUMS, CATS = window.CATS;
-  const TOUR = { interior: "جولة داخل القاعات", site: "جولة في الساحة والموقع", aerial: "صورة جوية تفاعلية" };
+  const TOUR = { interior: "جولة داخل القاعات", site: "جولة في الساحة والموقع", aerial: "صورة جوية تفاعلية", walk: "جولة مصوّرة" };
   const state = { cat: "all", q: "", tour: "all" };
   let map = null;
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const svUrl = (m) => m.tour === "aerial"
-    ? `https://maps.google.com/maps?q=${m.lat},${m.lng}&t=k&z=${m.zoom || 17}&output=embed&hl=ar`
+  const aerialUrl = (m) => `https://maps.google.com/maps?q=${m.lat},${m.lng}&t=k&z=${m.zoom || 17}&output=embed&hl=ar`;
+  const svUrl = (m) => m.tour === "aerial" ? aerialUrl(m)
     : `https://maps.google.com/maps?layer=c&cbll=${m.lat},${m.lng}&cbp=11,${m.heading || 0},0,0,0&output=svembed&hl=ar`;
   const mapsUrl = (m) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.fr)}`;
   const img = (file, w) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${w}`;
@@ -39,13 +39,13 @@
     return `<a class="card cat-${m.cat}" href="#/m/${m.id}">
       <div class="card-art">${pic}
         <span class="tag ${m.tour}">${TOUR[m.tour]}</span>
-        ${m.tour === "aerial" ? "" : `<span class="badge360" aria-hidden="true">360°</span>`}
+        ${m.tour === "aerial" || m.tour === "walk" ? "" : `<span class="badge360" aria-hidden="true">360°</span>`}
       </div>
       <div class="card-body">
         <p class="where">${esc(m.city)}</p>
         <h3>${esc(m.name)}</h3>
         <p class="lead">${esc(m.lead)}</p>
-        <span class="go">${m.tour === "aerial" ? "استكشف الموقع" : "ابدأ الجولة"} <span aria-hidden="true">←</span></span>
+        <span class="go">${m.tour === "aerial" ? "استكشف الموقع" : m.tour === "walk" ? "ابدأ الجولة المصوّرة" : "ابدأ الجولة"} <span aria-hidden="true">←</span></span>
       </div>
     </a>`;
   }
@@ -80,7 +80,7 @@
       pts.push([m.lat, m.lng]);
       L.circleMarker([m.lat, m.lng], { radius: 9, color: "#fff", weight: 2, fillColor: color[m.cat], fillOpacity: 1 })
         .addTo(map)
-        .bindPopup(`<div dir="rtl" class="pop"><strong>${esc(m.name)}</strong><span>${esc(m.city)}</span><a href="#/m/${m.id}">${m.tour === "aerial" ? "استكشف الموقع" : "ابدأ الجولة 360°"} ←</a></div>`);
+        .bindPopup(`<div dir="rtl" class="pop"><strong>${esc(m.name)}</strong><span>${esc(m.city)}</span><a href="#/m/${m.id}">${m.tour === "aerial" || m.tour === "walk" ? "استكشف الموقع" : "ابدأ الجولة 360°"} ←</a></div>`);
     });
     map.fitBounds(pts, { padding: [30, 30] });
   }
@@ -131,7 +131,7 @@
               <option value="all">كل الجولات</option>
               <option value="interior">داخل القاعات فقط</option>
               <option value="site">الساحة والموقع</option>
-              <option value="aerial">صورة جوية</option>
+              <option value="walk">جولة مصوّرة</option>
             </select>
           </div>
         </div>
@@ -162,8 +162,10 @@
     const i = M.findIndex((m) => m.id === id);
     if (i < 0) return notFound();
     const m = M[i], prev = M[(i - 1 + M.length) % M.length], next = M[(i + 1) % M.length];
-    document.title = `${m.name} — ${m.tour === "aerial" ? "صورة جوية" : "جولة 360°"}`;
+    document.title = `${m.name} — ${m.tour === "aerial" ? "صورة جوية" : m.tour === "walk" ? "جولة مصوّرة" : "جولة 360°"}`;
     const P = (window.PIECES && window.PIECES[m.id]) || m.highlights.map((h) => ({ t: h, d: "" }));
+    const W = (window.WALKS && window.WALKS[m.id]) || null;
+    const shots = W ? W.flatMap((st, si) => st.shots.map((x) => ({ f: x[0], by: x[1], lic: x[2], si }))) : [];
     const bg = m.img ? ` style="--hero:url('${img(m.img[0], 1600)}')"` : "";
     app.innerHTML = `
       <article class="museum cat-${m.cat}">
@@ -174,7 +176,7 @@
             <h1>${esc(m.name)}</h1>
             <p class="fr" dir="ltr" lang="fr">${esc(m.fr)}</p>
             <p class="lead">${esc(m.lead)}</p>
-            <a class="btn primary" href="#tour-box" id="go-tour">${m.tour === "aerial" ? "شاهد الموقع من الجو" : "ادخل الجولة 360°"}</a>
+            <a class="btn primary" href="#tour-box" id="go-tour">${m.tour === "aerial" ? "شاهد الموقع من الجو" : m.tour === "walk" ? "ادخل الجولة المصوّرة" : "ادخل الجولة 360°"}</a>
           </div>
           ${m.img ? `<p class="hero-credit">تصوير ${esc(m.img[1])}، ${esc(m.img[2])}</p>` : ""}
         </header>
@@ -182,7 +184,17 @@
         <div class="wrap">
           <section class="tour" id="tour-box">
             <div class="frame" id="frame">
-              <iframe id="sv" title="${m.tour === "aerial" ? "صورة جوية" : "جولة 360°"} — ${esc(m.name)}" src="${svUrl(m)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+              ${W ? `<div class="walkv" id="walkv">
+                <div class="w-bg" id="w-bg"></div>
+                <img id="w-img" alt="">
+                <div class="w-top">
+                  <div class="w-stops" role="group" aria-label="معالم الجولة">${W.map((st, si) => `<button type="button" data-si="${si}">${esc(st.name)}</button>`).join("")}</div>
+                  <span class="w-count" id="w-count"></span>
+                </div>
+                <button type="button" class="w-nav prev" id="w-prev" aria-label="الصورة السابقة">›</button>
+                <button type="button" class="w-nav next" id="w-next" aria-label="الصورة التالية">‹</button>
+                <p class="w-cap" id="w-cap"></p>
+              </div>` : `<iframe id="sv" title="${m.tour === "aerial" ? "صورة جوية" : "جولة 360°"} — ${esc(m.name)}" src="${svUrl(m)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>`}
               <div class="hud">
                 <button type="button" id="b-guide" aria-expanded="false" aria-controls="guide"><span aria-hidden="true">◈</span> دليل القطع</button>
                 <button type="button" id="b-walk"><span aria-hidden="true">⤢</span> <span class="lbl">وضع التجوال</span></button>
@@ -201,13 +213,24 @@
               </aside>
             </div>
             <div class="tour-bar">
-              <p class="hint">${m.tour === "aerial" ? "لا توجد بعدُ صور 360° لهذا الموقع على Google، فنعرضه بصورة جوية: اسحب للتنقّل وكبّر لرؤية الأطلال." : `اسحب بالفأرة أو بالإصبع للدوران 360°، واضغط على الأسهم البيضاء للتنقّل.${m.tour === "site" ? " هذه الجولة تبدأ من ساحة المتحف أو الموقع الأثري." : ""}`}</p>
+              <p class="hint">${W ? "جولة بصور حقيقية من الموقع: تقدّم بالسهمين أو بلوحة المفاتيح، واختر المعلَم من الأعلى. لا توجد بعدُ صور 360° لهذا الموقع على Google." : m.tour === "aerial" ? "لا توجد بعدُ صور 360° لهذا الموقع على Google، فنعرضه بصورة جوية: اسحب للتنقّل وكبّر لرؤية الأطلال." : `اسحب بالفأرة أو بالإصبع للدوران 360°، واضغط على الأسهم البيضاء للتنقّل.${m.tour === "site" ? " هذه الجولة تبدأ من ساحة المتحف أو الموقع الأثري." : ""}`}</p>
               <div class="btns">
                 <button id="reset" type="button">العودة إلى نقطة البداية</button>
                 <a class="btn" href="${mapsUrl(m)}" target="_blank" rel="noopener">الموقع على الخريطة</a>
               </div>
             </div>
           </section>
+
+          ${m.video ? `<section class="extra">
+            <h2>جولة بالفيديو</h2>
+            <div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/${m.video[0]}" title="${esc(m.video[1])}" loading="lazy" allowfullscreen allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"></iframe></div>
+            <p class="xnote">${esc(m.video[1])}. المصدر: ${esc(m.video[2])} على يوتيوب.</p>
+          </section>` : ""}
+          ${W ? `<section class="extra">
+            <h2>الموقع من الجو</h2>
+            <div class="vid"><iframe src="${aerialUrl(m)}" title="صورة جوية — ${esc(m.name)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+            <p class="xnote">صورة بالأقمار الصناعية من خرائط Google: اسحب للتنقّل وكبّر لرؤية مخطّط الأطلال.</p>
+          </section>` : ""}
 
           <div class="cols">
             <section class="story">
@@ -274,8 +297,43 @@
       if (req) Promise.resolve(req.call(frame)).catch(() => {});
     });
     document.onfullscreenchange = syncWalk;
+    let wi = 0;
+    const showShot = (k) => {
+      if (!shots.length) return;
+      wi = (k + shots.length) % shots.length;
+      const sh = shots[wi], el = document.getElementById("w-img"), src = img(sh.f, 1280);
+      el.classList.remove("in"); el.src = src; el.alt = `${W[sh.si].name}، ${m.name}`;
+      el.onload = () => el.classList.add("in");
+      el.onerror = () => { if (el.src === src && shots.length > 1) showShot(wi + 1); };
+      document.getElementById("w-bg").style.backgroundImage = `url("${img(sh.f, 320)}")`;
+      document.getElementById("w-count").textContent = `${wi + 1} / ${shots.length}`;
+      document.getElementById("w-cap").innerHTML = `<b>${esc(W[sh.si].name)}</b> <span>تصوير ${esc(sh.by)}، ${esc(sh.lic)}</span>`;
+      document.querySelectorAll(".w-stops button").forEach((x) => x.classList.toggle("on", +x.dataset.si === sh.si));
+      new Image().src = img(shots[(wi + 1) % shots.length].f, 1280);
+    };
+    if (W) {
+      const v = document.getElementById("walkv");
+      document.getElementById("w-next").addEventListener("click", () => showShot(wi + 1));
+      document.getElementById("w-prev").addEventListener("click", () => showShot(wi - 1));
+      v.querySelector(".w-stops").addEventListener("click", (e) => {
+        const bt = e.target.closest("button"); if (bt) showShot(shots.findIndex((x) => x.si === +bt.dataset.si));
+      });
+      document.onkeydown = (e) => {
+        if (!document.getElementById("walkv") || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+        if (e.key === "ArrowLeft") showShot(wi + 1);
+        if (e.key === "ArrowRight") showShot(wi - 1);
+      };
+      let x0 = null;
+      v.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+      v.addEventListener("touchend", (e) => {
+        if (x0 === null) return;
+        const dx = e.changedTouches[0].clientX - x0; x0 = null;
+        if (Math.abs(dx) > 40) showShot(wi + (dx > 0 ? 1 : -1));
+      });
+      showShot(0);
+    }
     document.getElementById("reset").addEventListener("click", () => {
-      document.getElementById("sv").src = svUrl(m);
+      if (W) showShot(0); else document.getElementById("sv").src = svUrl(m);
     });
   }
 
@@ -311,6 +369,7 @@
           </tbody>
         </table></div>
         <p>صور القطع داخل دليل كل متحف: ${Object.values(window.PIECES || {}).flat().filter((p) => p.img).map((p) => `<a href="${filePage(p.img[0])}" target="_blank" rel="noopener">${esc(p.t)}</a> (${esc(p.img[1])}، ${esc(p.img[2])})`).join("، ")}.</p>
+        <p>الجولات المصوّرة (تلابت والسليوم): صور ${[...new Set(Object.values(window.WALKS || {}).flat().flatMap((st) => st.shots.map((x) => `${x[1]} (${x[2]})`)))].map(esc).join("، ")}، من ويكيميديا كومنز، واسم المصوّر ظاهر تحت كل صورة.</p>
         <p>الخريطة: © المساهمون في OpenStreetMap.</p>
         <p><a class="btn" href="#/">العودة إلى المتاحف</a></p>
       </article>`;
