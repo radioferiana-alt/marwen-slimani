@@ -263,3 +263,5 @@ tr:last-child td { border-bottom: 0; }
   .hud button { padding: 7px 12px; font-size: 14px; }
 }
 [hidden] { display: none !important; }
+
+.tag.aerial { background: #dbe9f6; color: #174a70; }

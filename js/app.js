@@ -1,12 +1,14 @@
 (function () {
   const app = document.getElementById("app");
   const M = window.MUSEUMS, CATS = window.CATS;
-  const TOUR = { interior: "جولة داخل القاعات", site: "جولة في الساحة والموقع" };
+  const TOUR = { interior: "جولة داخل القاعات", site: "جولة في الساحة والموقع", aerial: "صورة جوية تفاعلية" };
   const state = { cat: "all", q: "", tour: "all" };
   let map = null;
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const svUrl = (m) => `https://maps.google.com/maps?layer=c&cbll=${m.lat},${m.lng}&cbp=11,${m.heading || 0},0,0,0&output=svembed&hl=ar`;
+  const svUrl = (m) => m.tour === "aerial"
+    ? `https://maps.google.com/maps?q=${m.lat},${m.lng}&t=k&z=${m.zoom || 17}&output=embed&hl=ar`
+    : `https://maps.google.com/maps?layer=c&cbll=${m.lat},${m.lng}&cbp=11,${m.heading || 0},0,0,0&output=svembed&hl=ar`;
   const mapsUrl = (m) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.fr)}`;
   const img = (file, w) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${w}`;
   const filePage = (file) => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file.replace(/ /g, "_"))}`;
@@ -37,13 +39,13 @@
     return `<a class="card cat-${m.cat}" href="#/m/${m.id}">
       <div class="card-art">${pic}
         <span class="tag ${m.tour}">${TOUR[m.tour]}</span>
-        <span class="badge360" aria-hidden="true">360°</span>
+        ${m.tour === "aerial" ? "" : `<span class="badge360" aria-hidden="true">360°</span>`}
       </div>
       <div class="card-body">
         <p class="where">${esc(m.city)}</p>
         <h3>${esc(m.name)}</h3>
         <p class="lead">${esc(m.lead)}</p>
-        <span class="go">ابدأ الجولة <span aria-hidden="true">←</span></span>
+        <span class="go">${m.tour === "aerial" ? "استكشف الموقع" : "ابدأ الجولة"} <span aria-hidden="true">←</span></span>
       </div>
     </a>`;
   }
@@ -78,7 +80,7 @@
       pts.push([m.lat, m.lng]);
       L.circleMarker([m.lat, m.lng], { radius: 9, color: "#fff", weight: 2, fillColor: color[m.cat], fillOpacity: 1 })
         .addTo(map)
-        .bindPopup(`<div dir="rtl" class="pop"><strong>${esc(m.name)}</strong><span>${esc(m.city)}</span><a href="#/m/${m.id}">ابدأ الجولة 360° ←</a></div>`);
+        .bindPopup(`<div dir="rtl" class="pop"><strong>${esc(m.name)}</strong><span>${esc(m.city)}</span><a href="#/m/${m.id}">${m.tour === "aerial" ? "استكشف الموقع" : "ابدأ الجولة 360°"} ←</a></div>`);
     });
     map.fitBounds(pts, { padding: [30, 30] });
   }
@@ -129,6 +131,7 @@
               <option value="all">كل الجولات</option>
               <option value="interior">داخل القاعات فقط</option>
               <option value="site">الساحة والموقع</option>
+              <option value="aerial">صورة جوية</option>
             </select>
           </div>
         </div>
@@ -159,7 +162,7 @@
     const i = M.findIndex((m) => m.id === id);
     if (i < 0) return notFound();
     const m = M[i], prev = M[(i - 1 + M.length) % M.length], next = M[(i + 1) % M.length];
-    document.title = `${m.name} — جولة 360°`;
+    document.title = `${m.name} — ${m.tour === "aerial" ? "صورة جوية" : "جولة 360°"}`;
     const P = (window.PIECES && window.PIECES[m.id]) || m.highlights.map((h) => ({ t: h, d: "" }));
     const bg = m.img ? ` style="--hero:url('${img(m.img[0], 1600)}')"` : "";
     app.innerHTML = `
@@ -171,7 +174,7 @@
             <h1>${esc(m.name)}</h1>
             <p class="fr" dir="ltr" lang="fr">${esc(m.fr)}</p>
             <p class="lead">${esc(m.lead)}</p>
-            <a class="btn primary" href="#tour-box" id="go-tour">ادخل الجولة 360°</a>
+            <a class="btn primary" href="#tour-box" id="go-tour">${m.tour === "aerial" ? "شاهد الموقع من الجو" : "ادخل الجولة 360°"}</a>
           </div>
           ${m.img ? `<p class="hero-credit">تصوير ${esc(m.img[1])}، ${esc(m.img[2])}</p>` : ""}
         </header>
@@ -179,7 +182,7 @@
         <div class="wrap">
           <section class="tour" id="tour-box">
             <div class="frame" id="frame">
-              <iframe id="sv" title="جولة 360° — ${esc(m.name)}" src="${svUrl(m)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+              <iframe id="sv" title="${m.tour === "aerial" ? "صورة جوية" : "جولة 360°"} — ${esc(m.name)}" src="${svUrl(m)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
               <div class="hud">
                 <button type="button" id="b-guide" aria-expanded="false" aria-controls="guide"><span aria-hidden="true">◈</span> دليل القطع</button>
                 <button type="button" id="b-walk"><span aria-hidden="true">⤢</span> <span class="lbl">وضع التجوال</span></button>
@@ -198,7 +201,7 @@
               </aside>
             </div>
             <div class="tour-bar">
-              <p class="hint">اسحب بالفأرة أو بالإصبع للدوران 360°، واضغط على الأسهم البيضاء للتنقّل.${m.tour === "site" ? " هذه الجولة تبدأ من ساحة المتحف أو الموقع الأثري." : ""}</p>
+              <p class="hint">${m.tour === "aerial" ? "لا توجد بعدُ صور 360° لهذا الموقع على Google، فنعرضه بصورة جوية: اسحب للتنقّل وكبّر لرؤية الأطلال." : `اسحب بالفأرة أو بالإصبع للدوران 360°، واضغط على الأسهم البيضاء للتنقّل.${m.tour === "site" ? " هذه الجولة تبدأ من ساحة المتحف أو الموقع الأثري." : ""}`}</p>
               <div class="btns">
                 <button id="reset" type="button">العودة إلى نقطة البداية</button>
                 <a class="btn" href="${mapsUrl(m)}" target="_blank" rel="noopener">الموقع على الخريطة</a>
