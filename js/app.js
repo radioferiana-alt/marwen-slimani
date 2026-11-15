@@ -12,25 +12,10 @@
   const filePage = (file) => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file.replace(/ /g, "_"))}`;
   const norm = (s) => s.toLowerCase().replace(/[ً-ْـ]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
 
-  const bgm = document.getElementById("bgm");
-  if (bgm) bgm.volume = 0.3;
-  function toggleMusic() {
-    if (!bgm) return;
-    if (bgm.paused) bgm.play().catch(() => {}); else bgm.pause();
-  }
-  function syncMusic(btn) {
-    if (!btn) return;
-    if (!bgm) { btn.remove(); return; }
-    const on = !bgm.paused;
-    btn.setAttribute("aria-pressed", on);
-    btn.querySelector(".lbl").textContent = on ? "إيقاف الموسيقى" : "تشغيل الموسيقى";
-  }
-  if (bgm) ["play", "pause"].forEach((ev) => bgm.addEventListener(ev, () => syncMusic(document.getElementById("b-music"))));
   let speakBtn = null;
   function stopSpeak() {
     if ("speechSynthesis" in window) speechSynthesis.cancel();
     if (speakBtn) { speakBtn.textContent = "▶ استمع إلى الشرح"; speakBtn = null; }
-    if (bgm) bgm.volume = 0.3;
   }
   function speak(piece, btn) {
     if (!("speechSynthesis" in window)) return;
@@ -42,7 +27,6 @@
     if (v) u.voice = v;
     u.onend = u.onerror = () => { if (speakBtn === btn) stopSpeak(); };
     speakBtn = btn; btn.textContent = "■ إيقاف الشرح";
-    if (bgm) bgm.volume = 0.1;
     speechSynthesis.speak(u);
   }
 
@@ -198,7 +182,6 @@
               <iframe id="sv" title="جولة 360° — ${esc(m.name)}" src="${svUrl(m)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
               <div class="hud">
                 <button type="button" id="b-guide" aria-expanded="false" aria-controls="guide"><span aria-hidden="true">◈</span> دليل القطع</button>
-                <button type="button" id="b-music" aria-pressed="false"><span aria-hidden="true">♪</span> <span class="lbl">تشغيل الموسيقى</span></button>
                 <button type="button" id="b-walk"><span aria-hidden="true">⤢</span> <span class="lbl">وضع التجوال</span></button>
               </div>
               <aside class="guide" id="guide" hidden aria-label="دليل القطع">
@@ -255,7 +238,7 @@
       e.preventDefault(); document.getElementById("tour-box").scrollIntoView({ behavior: "smooth" });
     });
     const frame = document.getElementById("frame"), guide = document.getElementById("guide");
-    const bGuide = document.getElementById("b-guide"), bMusic = document.getElementById("b-music"), bWalk = document.getElementById("b-walk");
+    const bGuide = document.getElementById("b-guide"), bWalk = document.getElementById("b-walk");
     const openGuide = (on) => { guide.hidden = !on; bGuide.setAttribute("aria-expanded", on); if (!on) stopSpeak(); };
     bGuide.addEventListener("click", () => openGuide(guide.hidden));
     document.getElementById("g-close").addEventListener("click", () => openGuide(false));
@@ -277,8 +260,6 @@
     };
     refreshSpeak();
     if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = refreshSpeak;
-    syncMusic(bMusic);
-    bMusic.addEventListener("click", () => { toggleMusic(); });
     const syncWalk = () => {
       const on = document.fullscreenElement === frame;
       bWalk.querySelector(".lbl").textContent = on ? "الخروج من التجوال" : "وضع التجوال";
@@ -288,7 +269,6 @@
       if (document.fullscreenElement) { document.exitFullscreen(); return; }
       const req = frame.requestFullscreen || frame.webkitRequestFullscreen;
       if (req) Promise.resolve(req.call(frame)).catch(() => {});
-      if (bgm && bgm.paused) toggleMusic();
     });
     document.onfullscreenchange = syncWalk;
     document.getElementById("reset").addEventListener("click", () => {
@@ -328,7 +308,6 @@
           </tbody>
         </table></div>
         <p>صور القطع داخل دليل كل متحف: ${Object.values(window.PIECES || {}).flat().filter((p) => p.img).map((p) => `<a href="${filePage(p.img[0])}" target="_blank" rel="noopener">${esc(p.t)}</a> (${esc(p.img[1])}، ${esc(p.img[2])})`).join("، ")}.</p>
-        <p>الموسيقى: ${esc((window.MUSIC || {}).title || "")}، ${esc((window.MUSIC || {}).credit || "")}.</p>
         <p>الخريطة: © المساهمون في OpenStreetMap.</p>
         <p><a class="btn" href="#/">العودة إلى المتاحف</a></p>
       </article>`;
