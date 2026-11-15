@@ -292,3 +292,20 @@ tr:last-child td { border-bottom: 0; }
 .vid iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .xnote { margin: 8px 0 0; color: var(--muted); font-size: 14.5px; }
 @media (max-width: 620px) { .w-nav { width: 44px; height: 44px; font-size: 28px; } .w-cap { bottom: 96px; } }
+
+/* ===== غرفة الصور الدائرية ===== */
+.ring { position: relative; height: min(62vh, 460px); min-height: 320px; overflow: hidden; border-radius: var(--radius); background: radial-gradient(ellipse at center, #26394a 0%, #0c141b 75%); cursor: grab; touch-action: pan-y; user-select: none; box-shadow: var(--shadow); }
+.ring:active { cursor: grabbing; }
+.ring-in { position: absolute; inset: 0; transform-style: preserve-3d; }
+.rp { position: absolute; left: 50%; top: 50%; width: var(--w, 520px); height: var(--h, 380px); margin: calc(var(--h, 380px) / -2) 0 0 calc(var(--w, 520px) / -2); padding: 0; border: 3px solid #f3ead7; border-radius: 6px; background: #000; cursor: zoom-in; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
+.rp img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.ring-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 2; color: #fff; font: 700 14px "Tajawal", sans-serif; background: rgba(12, 20, 27, .65); border-radius: 999px; padding: 3px 14px; pointer-events: none; }
+.ring-bar { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.ring-bar p { flex: 1; margin: 0; text-align: center; font-variant-numeric: tabular-nums; }
+.ring-bar button { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); font: 400 26px/1 sans-serif; cursor: pointer; padding-bottom: 4px; }
+.ring-bar button:hover { border-color: var(--terra); color: var(--terra); }
+.lb { position: fixed; inset: 0; z-index: 2000; background: rgba(8, 14, 20, .94); display: grid; place-items: center; align-content: center; gap: 10px; padding: 24px; }
+.lb[hidden] { display: none; }
+.lb img { max-width: min(96vw, 1400px); max-height: 82vh; object-fit: contain; border-radius: 6px; }
+.lb p { margin: 0; color: #d7dee4; font-size: 14.5px; }
+#lb-x { position: absolute; top: 14px; inset-inline-end: 18px; font: 400 40px/1 sans-serif; color: #fff; background: none; border: 0; cursor: pointer; }

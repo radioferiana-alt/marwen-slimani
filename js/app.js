@@ -166,6 +166,7 @@
     const P = (window.PIECES && window.PIECES[m.id]) || m.highlights.map((h) => ({ t: h, d: "" }));
     const W = (window.WALKS && window.WALKS[m.id]) || null;
     const shots = W ? W.flatMap((st, si) => st.shots.map((x) => ({ f: x[0], by: x[1], lic: x[2], si }))) : [];
+    const RING = W && m.ring ? m.ring.map((f) => shots.find((x) => x.f === f)).filter(Boolean) : [];
     const bg = m.img ? ` style="--hero:url('${img(m.img[0], 1600)}')"` : "";
     app.innerHTML = `
       <article class="museum cat-${m.cat}">
@@ -221,6 +222,16 @@
             </div>
           </section>
 
+          ${RING.length ? `<section class="extra">
+            <h2>غرفة صور الحمّام</h2>
+            <div class="ring" id="ring" role="group" aria-label="غرفة صور دائرية، اسحب للدوران">
+              <div class="ring-in" id="ring-in">${RING.map((x, i) => `<button type="button" class="rp" data-i="${i}" style="--i:${i}" aria-label="تكبير الصورة ${i + 1}"><img src="${img(x.f, 800)}" alt="${esc(m.name)}، الحمّام الروماني، صورة ${i + 1}" loading="lazy" draggable="false"></button>`).join("")}</div>
+              <span class="ring-hint" aria-hidden="true">↔ اسحب للدوران</span>
+            </div>
+            <div class="ring-bar"><button type="button" id="ring-l" aria-label="دوران لليسار">‹</button><p class="xnote" id="ring-cap"></p><button type="button" id="ring-r" aria-label="دوران لليمين">›</button></div>
+            <p class="xnote">غرفة افتراضية تحيط بك فيها صور حقيقية للحمّام الروماني، لكنها صور منفصلة وليست بانوراما 360° متصلة. اضغط على أي صورة لتكبيرها.</p>
+            <div class="lb" id="lb" hidden><button type="button" id="lb-x" aria-label="إغلاق">×</button><img id="lb-img" alt=""><p id="lb-cap"></p></div>
+          </section>` : ""}
           ${m.video ? `<section class="extra">
             <h2>جولة بالفيديو</h2>
             <div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/${m.video[0]}" title="${esc(m.video[1])}" loading="lazy" allowfullscreen allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"></iframe></div>
@@ -331,6 +342,41 @@
         if (Math.abs(dx) > 40) showShot(wi + (dx > 0 ? 1 : -1));
       });
       showShot(0);
+    }
+    if (RING.length) {
+      const ring = document.getElementById("ring"), inner = document.getElementById("ring-in");
+      const n = RING.length, step = 360 / n, W0 = 520, H0 = 380, R0 = W0 / (2 * Math.tan(Math.PI / n)), P0 = 540;
+      ring.style.perspective = P0 + "px";
+      inner.style.setProperty("--w", W0 + "px"); inner.style.setProperty("--h", H0 + "px");
+      inner.querySelectorAll(".rp").forEach((b) => { b.style.transform = `rotateY(${b.dataset.i * step}deg) translateZ(${-R0}px)`; });
+      let ang = 0, vel = 0, down = false, moved = 0, lastX = 0, auto = !matchMedia("(prefers-reduced-motion: reduce)").matches, raf = 0;
+      const front = () => ((Math.round(-ang / step) % n) + n) % n;
+      const cap = () => { const x = RING[front()]; document.getElementById("ring-cap").textContent = `${front() + 1} / ${n}. تصوير ${x.by}، ${x.lic}`; };
+      const draw = () => { inner.style.transform = `translateZ(${P0}px) rotateY(${ang}deg)`; cap(); };
+      const tick = () => {
+        if (!document.getElementById("ring")) return;
+        if (!down) { ang += vel; vel *= 0.94; if (Math.abs(vel) < 0.02) vel = 0; if (auto && vel === 0) ang -= 0.06; }
+        draw(); raf = requestAnimationFrame(tick);
+      };
+      ring.addEventListener("pointerdown", (e) => { down = true; moved = 0; lastX = e.clientX; vel = 0; auto = false; ring.setPointerCapture(e.pointerId); });
+      ring.addEventListener("pointermove", (e) => { if (!down) return; const dx = e.clientX - lastX; lastX = e.clientX; moved += Math.abs(dx); ang += dx * 0.25; vel = dx * 0.25; });
+      ring.addEventListener("pointerup", () => { down = false; });
+      ring.addEventListener("pointercancel", () => { down = false; });
+      const spin = (d) => { auto = false; vel = d * 3; };
+      document.getElementById("ring-l").addEventListener("click", () => spin(1));
+      document.getElementById("ring-r").addEventListener("click", () => spin(-1));
+      const lb = document.getElementById("lb");
+      const closeLb = () => { lb.hidden = true; };
+      document.getElementById("lb-x").addEventListener("click", closeLb);
+      lb.addEventListener("click", (e) => { if (e.target === lb) closeLb(); });
+      inner.addEventListener("click", (e) => {
+        const b = e.target.closest(".rp"); if (!b || moved > 6) return;
+        const x = RING[+b.dataset.i];
+        document.getElementById("lb-img").src = img(x.f, 1600);
+        document.getElementById("lb-cap").textContent = `تصوير ${x.by}، ${x.lic}`;
+        lb.hidden = false;
+      });
+      cancelAnimationFrame(window.__ringRaf); raf = requestAnimationFrame(tick); window.__ringRaf = raf;
     }
     document.getElementById("reset").addEventListener("click", () => {
       if (W) showShot(0); else document.getElementById("sv").src = svUrl(m);

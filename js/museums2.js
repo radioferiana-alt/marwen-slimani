@@ -163,6 +163,7 @@ window.MUSEUMS.push({
   id: "talabet", name: "الموقع الأثري بتلابت", fr: "Site archéologique de Thélepte",
   city: "تلابت، قرب فريانة، ولاية القصرين", region: "الوسط", cat: "archaeology", tour: "walk",
   video: ["AgDldMls4v0", "تقرير مصوّر من داخل آثار تلابت", "Tunisie Numérique"],
+  ring: ["الحمامات بتلابت 01.jpg", "الحمامات بتلابت 03.jpg", "الحمامات بتلابت 05.jpg", "الحمامات بتلابت 07.jpg", "الحمامات بتلابت 12.jpg", "الحمامات بتلابت 13.jpg", "Thermes au sud du Koudiat-es-Safra 03.jpg", "Thermes au sud du Koudiat-es-Safra 05.jpg"],
   lat: 34.966527, lng: 8.584454, zoom: 17, founded: "القرن 1م", era: "روماني وبيزنطي",
   lead: "تيليبتي القديمة: مدينة رومانية كبرى على طريق تبسّة وقفصة، ثم مقرّ قيادة بيزنطية.",
   history: [
