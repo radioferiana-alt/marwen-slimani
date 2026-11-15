@@ -12,6 +12,40 @@
   const filePage = (file) => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file.replace(/ /g, "_"))}`;
   const norm = (s) => s.toLowerCase().replace(/[ً-ْـ]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
 
+  const bgm = document.getElementById("bgm");
+  if (bgm) bgm.volume = 0.3;
+  function toggleMusic() {
+    if (!bgm) return;
+    if (bgm.paused) bgm.play().catch(() => {}); else bgm.pause();
+  }
+  function syncMusic(btn) {
+    if (!btn) return;
+    if (!bgm) { btn.remove(); return; }
+    const on = !bgm.paused;
+    btn.setAttribute("aria-pressed", on);
+    btn.querySelector(".lbl").textContent = on ? "إيقاف الموسيقى" : "تشغيل الموسيقى";
+  }
+  if (bgm) ["play", "pause"].forEach((ev) => bgm.addEventListener(ev, () => syncMusic(document.getElementById("b-music"))));
+  let speakBtn = null;
+  function stopSpeak() {
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    if (speakBtn) { speakBtn.textContent = "▶ استمع إلى الشرح"; speakBtn = null; }
+    if (bgm) bgm.volume = 0.3;
+  }
+  function speak(piece, btn) {
+    if (!("speechSynthesis" in window)) return;
+    if (speakBtn === btn) { stopSpeak(); return; }
+    stopSpeak();
+    const u = new SpeechSynthesisUtterance(piece.t + ". " + piece.d);
+    u.lang = "ar-SA"; u.rate = 0.95;
+    const v = speechSynthesis.getVoices().find((x) => x.lang && x.lang.toLowerCase().startsWith("ar"));
+    if (v) u.voice = v;
+    u.onend = u.onerror = () => { if (speakBtn === btn) stopSpeak(); };
+    speakBtn = btn; btn.textContent = "■ إيقاف الشرح";
+    if (bgm) bgm.volume = 0.1;
+    speechSynthesis.speak(u);
+  }
+
   function card(m) {
     const pic = m.img
       ? `<img src="${img(m.img[0], 640)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`
@@ -142,6 +176,7 @@
     if (i < 0) return notFound();
     const m = M[i], prev = M[(i - 1 + M.length) % M.length], next = M[(i + 1) % M.length];
     document.title = `${m.name} — جولة 360°`;
+    const P = (window.PIECES && window.PIECES[m.id]) || m.highlights.map((h) => ({ t: h, d: "" }));
     const bg = m.img ? ` style="--hero:url('${img(m.img[0], 1600)}')"` : "";
     app.innerHTML = `
       <article class="museum cat-${m.cat}">
@@ -159,13 +194,29 @@
 
         <div class="wrap">
           <section class="tour" id="tour-box">
-            <div class="frame">
+            <div class="frame" id="frame">
               <iframe id="sv" title="جولة 360° — ${esc(m.name)}" src="${svUrl(m)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+              <div class="hud">
+                <button type="button" id="b-guide" aria-expanded="false" aria-controls="guide"><span aria-hidden="true">◈</span> دليل القطع</button>
+                <button type="button" id="b-music" aria-pressed="false"><span aria-hidden="true">♪</span> <span class="lbl">تشغيل الموسيقى</span></button>
+                <button type="button" id="b-walk"><span aria-hidden="true">⤢</span> <span class="lbl">وضع التجوال</span></button>
+              </div>
+              <aside class="guide" id="guide" hidden aria-label="دليل القطع">
+                <header><h2>دليل القطع</h2><button type="button" id="g-close" aria-label="إغلاق الدليل">×</button></header>
+                <p class="g-note">اختر قطعة لتقرأ عنها أو تسمع شرحها وأنت تتجوّل.</p>
+                <ol class="g-list">
+                  ${P.map((p, k) => `<li><button type="button" class="g-item" data-k="${k}" aria-expanded="false"><b>${k + 1}</b><span>${esc(p.t)}</span></button>
+                    <div class="g-body" hidden>
+                      ${p.img ? `<img src="${img(p.img[0], 640)}" alt="${esc(p.t)}" loading="lazy" onerror="this.remove()">` : ""}
+                      <p>${esc(p.d)}</p>
+                      <button type="button" class="g-speak" data-k="${k}">▶ استمع إلى الشرح</button>
+                    </div></li>`).join("")}
+                </ol>
+              </aside>
             </div>
             <div class="tour-bar">
               <p class="hint">اسحب بالفأرة أو بالإصبع للدوران 360°، واضغط على الأسهم البيضاء للتنقّل.${m.tour === "site" ? " هذه الجولة تبدأ من ساحة المتحف أو الموقع الأثري." : ""}</p>
               <div class="btns">
-                <button id="fs" type="button">ملء الشاشة</button>
                 <button id="reset" type="button">العودة إلى نقطة البداية</button>
                 <a class="btn" href="${mapsUrl(m)}" target="_blank" rel="noopener">الموقع على الخريطة</a>
               </div>
@@ -176,8 +227,11 @@
             <section class="story">
               <h2>نبذة تاريخية</h2>
               ${m.history.map((p) => `<p>${esc(p)}</p>`).join("")}
-              <h2>لا تفوّت</h2>
-              <ul class="hl">${m.highlights.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
+              <h2>قطع ومعالم لا تفوّتها</h2>
+              <div class="pieces">${P.map((p, k) => `<article class="piece">
+                ${p.img ? `<img src="${img(p.img[0], 640)}" alt="${esc(p.t)}" loading="lazy" onerror="this.remove()">` : ""}
+                <div><h3><b>${k + 1}</b>${esc(p.t)}</h3><p>${esc(p.d)}</p></div>
+              </article>`).join("")}</div>
             </section>
             <aside class="facts">
               <h2>بطاقة المتحف</h2>
@@ -200,11 +254,43 @@
     document.getElementById("go-tour").addEventListener("click", (e) => {
       e.preventDefault(); document.getElementById("tour-box").scrollIntoView({ behavior: "smooth" });
     });
-    document.getElementById("fs").addEventListener("click", () => {
-      const el = document.querySelector("#tour-box .frame");
-      if (document.fullscreenElement) document.exitFullscreen();
-      else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    const frame = document.getElementById("frame"), guide = document.getElementById("guide");
+    const bGuide = document.getElementById("b-guide"), bMusic = document.getElementById("b-music"), bWalk = document.getElementById("b-walk");
+    const openGuide = (on) => { guide.hidden = !on; bGuide.setAttribute("aria-expanded", on); if (!on) stopSpeak(); };
+    bGuide.addEventListener("click", () => openGuide(guide.hidden));
+    document.getElementById("g-close").addEventListener("click", () => openGuide(false));
+    guide.addEventListener("click", (e) => {
+      const it = e.target.closest(".g-item"), sp = e.target.closest(".g-speak");
+      if (it) {
+        const body = it.nextElementSibling, open = body.hidden;
+        guide.querySelectorAll(".g-body").forEach((x) => { x.hidden = true; });
+        guide.querySelectorAll(".g-item").forEach((x) => x.setAttribute("aria-expanded", "false"));
+        stopSpeak();
+        if (open) { body.hidden = false; it.setAttribute("aria-expanded", "true"); }
+      }
+      if (sp) speak(P[+sp.dataset.k], sp);
     });
+    // زرّ الاستماع يظهر فقط إن وُجد صوت عربي على جهاز الزائر
+    const refreshSpeak = () => {
+      const has = "speechSynthesis" in window && speechSynthesis.getVoices().some((v) => v.lang && v.lang.toLowerCase().startsWith("ar"));
+      guide.querySelectorAll(".g-speak").forEach((x) => { x.hidden = !has; });
+    };
+    refreshSpeak();
+    if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = refreshSpeak;
+    syncMusic(bMusic);
+    bMusic.addEventListener("click", () => { toggleMusic(); });
+    const syncWalk = () => {
+      const on = document.fullscreenElement === frame;
+      bWalk.querySelector(".lbl").textContent = on ? "الخروج من التجوال" : "وضع التجوال";
+      frame.classList.toggle("walking", on);
+    };
+    bWalk.addEventListener("click", () => {
+      if (document.fullscreenElement) { document.exitFullscreen(); return; }
+      const req = frame.requestFullscreen || frame.webkitRequestFullscreen;
+      if (req) Promise.resolve(req.call(frame)).catch(() => {});
+      if (bgm && bgm.paused) toggleMusic();
+    });
+    document.onfullscreenchange = syncWalk;
     document.getElementById("reset").addEventListener("click", () => {
       document.getElementById("sv").src = svUrl(m);
     });
@@ -241,6 +327,8 @@
             ${M.filter((m) => m.img).map((m) => row(m.name, m.img)).join("")}
           </tbody>
         </table></div>
+        <p>صور القطع داخل دليل كل متحف: ${Object.values(window.PIECES || {}).flat().filter((p) => p.img).map((p) => `<a href="${filePage(p.img[0])}" target="_blank" rel="noopener">${esc(p.t)}</a> (${esc(p.img[1])}، ${esc(p.img[2])})`).join("، ")}.</p>
+        <p>الموسيقى: ${esc((window.MUSIC || {}).title || "")}، ${esc((window.MUSIC || {}).credit || "")}.</p>
         <p>الخريطة: © المساهمون في OpenStreetMap.</p>
         <p><a class="btn" href="#/">العودة إلى المتاحف</a></p>
       </article>`;
@@ -254,6 +342,7 @@
     const h = location.hash.replace(/^#\/?/, "");
     let nav = "home";
     if (map) { map.remove(); map = null; }
+    stopSpeak();
     if (!h) home(false);
     else if (h === "map") { home(true); nav = "map"; }
     else if (h === "about") { about(); nav = "about"; }
