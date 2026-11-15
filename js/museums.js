@@ -202,3 +202,27 @@ window.CATS = {
   heritage: "فنون إسلامية وتراث شعبي",
   modern: "علوم وتاريخ معاصر"
 };
+
+// صور المتاحف من ويكيميديا كومنز: [اسم الملف، المصوّر، الرخصة]
+window.HERO_IMG = ["Mosaic with the poet Virgil and the two Muses, Clio and Melpomene, dated to the early 3rd century AD, from Hadrumetum (Sousse), National Museum of Bardo, Tunisia (54066539730).jpg", "Carole Raddato", "CC BY-SA 2.0"];
+(function () {
+  const IMG = {
+    "bardo": ["Carthage Room Bardo.jpg", "Alexandre Moreau", "CC BY-SA 2.0"],
+    "carthage": ["Tunezja, Kartagina, Narodowe Muzeum Kartagińskie - panoramio.jpg", "Mietek Ł", "CC BY-SA 3.0"],
+    "sousse": ["Archaeological Museum of Sousse 07042013.jpg", "Yamen", "CC BY-SA 4.0"],
+    "mahdia": ["Museu de Mahdia.jpg", "Jaume Ollé", "CC BY 3.0"],
+    "eljem": ["Sunny El Jem Museum courtyard.jpg", "Miroslav Krejcirik", "CC BY 2.0"],
+    "utique": ["Tunis Utique Musée.JPG", "Rais67", "ملك عام"],
+    "kerkouane": ["Musée de Kerkouane 01.jpg", "Youssefbensaad", "CC BY-SA 4.0"],
+    "makthar": ["Arc de Trajan, Makthar.jpg", "Mehdi Ben Gharbia", "CC BY-SA 3.0"],
+    "sbeitla": ["SUF - Capitoline temples of Sufetula, Sbeitla, Tunisia, 2023.jpg", "Josep M. Gracia", "CC BY-SA 4.0"],
+    "ribat-monastir": ["Le Ribat de Monastir 52, mai 2013.jpg", "Habib M'henni", "CC BY-SA 3.0"],
+    "bourguiba": ["Leader Habib Bourguiba Museum 02.JPG", "Yamen", "CC BY-SA 3.0"],
+    "monnaie": ["Tunis Musée Monnaie.JPG", "Rais67", "ملك عام"],
+    "salammbo": ["Oceanographic Museum of Carthage.jpg", "Shoestring", "CC BY-SA 4.0"],
+    "dar-annabi": ["HautPatioArabicHouseSidiBouSaid.JPG", "Citizen59", "CC BY-SA 3.0"],
+    "guellala": ["Vue d’extérieur du musée 1.jpg", "Bsghaier", "CC BY-SA 4.0"],
+    "djerba-heritage": ["Tunisie musée Djerba 1.jpg", "M.Rais", "CC0"]
+  };
+  window.MUSEUMS.forEach((m) => { m.img = IMG[m.id] || null; });
+})();

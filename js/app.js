@@ -3,21 +3,29 @@
   const M = window.MUSEUMS, CATS = window.CATS;
   const TOUR = { interior: "جولة داخل القاعات", site: "جولة في الساحة والموقع" };
   const state = { cat: "all", q: "", tour: "all" };
+  let map = null;
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const svUrl = (m) => `https://maps.google.com/maps?layer=c&cbll=${m.lat},${m.lng}&cbp=11,${m.heading || 0},0,0,0&output=svembed&hl=ar`;
   const mapsUrl = (m) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.fr)}`;
+  const img = (file, w) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${w}`;
+  const filePage = (file) => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file.replace(/ /g, "_"))}`;
   const norm = (s) => s.toLowerCase().replace(/[ً-ْـ]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
 
-  function card(m, i) {
-    return `<a class="card cat-${m.cat}" href="#/m/${m.id}" style="--i:${i}">
-      <div class="card-art" aria-hidden="true"><span>${esc(m.founded !== "—" ? m.founded : "360°")}</span></div>
-      <div class="card-body">
+  function card(m) {
+    const pic = m.img
+      ? `<img src="${img(m.img[0], 640)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`
+      : "";
+    return `<a class="card cat-${m.cat}" href="#/m/${m.id}">
+      <div class="card-art">${pic}
         <span class="tag ${m.tour}">${TOUR[m.tour]}</span>
-        <h3>${esc(m.name)}</h3>
+        <span class="badge360" aria-hidden="true">360°</span>
+      </div>
+      <div class="card-body">
         <p class="where">${esc(m.city)}</p>
+        <h3>${esc(m.name)}</h3>
         <p class="lead">${esc(m.lead)}</p>
-        <span class="go">ابدأ الجولة 360° ←</span>
+        <span class="go">ابدأ الجولة <span aria-hidden="true">←</span></span>
       </div>
     </a>`;
   }
@@ -38,24 +46,62 @@
     document.getElementById("count").textContent = `${list.length} من ${M.length}`;
   }
 
-  function home() {
-    document.title = "متاحف تونس — جولات 360°";
+  function buildMap() {
+    const el = document.getElementById("map");
+    if (!el || !window.L) { if (el) el.closest(".mapsec").hidden = true; return; }
+    if (map) { map.remove(); map = null; }
+    map = L.map(el, { scrollWheelZoom: false }).setView([34.6, 9.8], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    const color = { archaeology: "#a8482a", heritage: "#1d5c86", modern: "#5f6b2f" };
+    const pts = [];
+    M.forEach((m) => {
+      pts.push([m.lat, m.lng]);
+      L.circleMarker([m.lat, m.lng], { radius: 9, color: "#fff", weight: 2, fillColor: color[m.cat], fillOpacity: 1 })
+        .addTo(map)
+        .bindPopup(`<div dir="rtl" class="pop"><strong>${esc(m.name)}</strong><span>${esc(m.city)}</span><a href="#/m/${m.id}">ابدأ الجولة 360° ←</a></div>`);
+    });
+    map.fitBounds(pts, { padding: [30, 30] });
+  }
+
+  function home(scrollToMap) {
+    document.title = "متاحف تونس — جولات افتراضية 360°";
     const interior = M.filter((m) => m.tour === "interior").length;
+    const H = window.HERO_IMG;
     app.innerHTML = `
-      <section class="hero">
-        <p class="kicker">ثلاثة آلاف سنة من التاريخ</p>
-        <h1>تجوّل داخل متاحف تونس<br><em>بزاوية 360 درجة</em></h1>
-        <p class="sub">من فسيفساء باردو إلى بيوت كركوان البونية وقباب جربة: اختر متحفاً، ثم اسحب الصورة لتنظر حولك وتتنقّل بين القاعات.</p>
-        <div class="stats">
-          <div><b>${M.length}</b><span>متحفاً وموقعاً</span></div>
-          <div><b>${interior}</b><span>جولة داخل القاعات</span></div>
-          <div><b>${new Set(M.map((m) => m.region)).size}</b><span>جهات</span></div>
+      <section class="hero" style="--hero:url('${img(H[0], 1600)}')">
+        <div class="hero-in">
+          <p class="kicker">ثلاثة آلاف سنة من التاريخ</p>
+          <h1>تجوّل داخل متاحف تونس <em>بزاوية 360 درجة</em></h1>
+          <p class="sub">من فسيفساء باردو إلى بيوت كركوان البونية وقباب جربة: اختر متحفاً، ثم اسحب الصورة لتنظر حولك وتتنقّل بين القاعات.</p>
+          <div class="cta">
+            <a class="btn primary" href="#/m/bardo">ابدأ من متحف باردو</a>
+            <a class="btn ghost" href="#/map">تصفّح الخريطة</a>
+          </div>
+          <dl class="stats">
+            <div><dt>متحفاً وموقعاً</dt><dd>${M.length}</dd></div>
+            <div><dt>جولة داخل القاعات</dt><dd>${interior}</dd></div>
+            <div><dt>جهات من البلاد</dt><dd>${new Set(M.map((m) => m.region)).size}</dd></div>
+          </dl>
         </div>
+        <p class="hero-credit">فسيفساء فيرجيل، متحف باردو. تصوير ${esc(H[1])}، ${esc(H[2])}</p>
       </section>
-      <section class="browse">
+
+      <section class="how">
+        <div><b>1</b><h3>اختر متحفاً</h3><p>تصفّح حسب النوع أو ابحث باسم المدينة.</p></div>
+        <div><b>2</b><h3>انظر حولك</h3><p>اسحب الصورة في كل الاتجاهات بالفأرة أو بالإصبع.</p></div>
+        <div><b>3</b><h3>تنقّل واقرأ</h3><p>اضغط الأسهم للانتقال بين القاعات، واقرأ تاريخ المتحف أسفل الجولة.</p></div>
+      </section>
+
+      <section class="browse" id="museums">
+        <div class="sec-head">
+          <h2>المتاحف</h2>
+          <span id="count" class="count"></span>
+        </div>
         <div class="tools">
           <div class="chips" role="group" aria-label="التصنيف">
-            ${Object.entries(CATS).map(([k, v]) => `<button data-cat="${k}" class="${state.cat === k ? "on" : ""}">${v}</button>`).join("")}
+            ${Object.entries(CATS).map(([k, v]) => `<button type="button" data-cat="${k}" class="${state.cat === k ? "on" : ""}">${v}</button>`).join("")}
           </div>
           <div class="row">
             <label class="search"><span class="sr">بحث</span>
@@ -66,13 +112,20 @@
               <option value="interior">داخل القاعات فقط</option>
               <option value="site">الساحة والموقع</option>
             </select>
-            <span id="count" class="count"></span>
           </div>
         </div>
         <div id="grid" class="grid"></div>
+      </section>
+
+      <section class="mapsec" id="mapsec">
+        <div class="sec-head"><h2>المتاحف على الخريطة</h2>
+          <p class="legend"><i style="background:#a8482a"></i>آثار <i style="background:#1d5c86"></i>تراث وفنون <i style="background:#5f6b2f"></i>علوم وتاريخ معاصر</p>
+        </div>
+        <div id="map" dir="ltr" role="region" aria-label="خريطة المتاحف"></div>
       </section>`;
     document.getElementById("tour").value = state.tour;
     renderGrid();
+    buildMap();
     app.querySelector(".chips").addEventListener("click", (e) => {
       const b = e.target.closest("button"); if (!b) return;
       state.cat = b.dataset.cat;
@@ -81,6 +134,7 @@
     });
     document.getElementById("q").addEventListener("input", (e) => { state.q = e.target.value; renderGrid(); });
     document.getElementById("tour").addEventListener("change", (e) => { state.tour = e.target.value; renderGrid(); });
+    if (scrollToMap) requestAnimationFrame(() => document.getElementById("mapsec").scrollIntoView());
   }
 
   function museum(id) {
@@ -88,61 +142,71 @@
     if (i < 0) return notFound();
     const m = M[i], prev = M[(i - 1 + M.length) % M.length], next = M[(i + 1) % M.length];
     document.title = `${m.name} — جولة 360°`;
+    const bg = m.img ? ` style="--hero:url('${img(m.img[0], 1600)}')"` : "";
     app.innerHTML = `
       <article class="museum cat-${m.cat}">
-        <nav class="crumbs"><a href="#/">المتاحف</a> <span>‹</span> ${esc(m.name)}</nav>
-        <header class="m-head">
-          <span class="tag ${m.tour}">${TOUR[m.tour]}</span>
-          <h1>${esc(m.name)}</h1>
-          <p class="fr" dir="ltr" lang="fr">${esc(m.fr)}</p>
-          <p class="lead">${esc(m.lead)}</p>
+        <header class="m-head"${bg}>
+          <div class="m-head-in">
+            <nav class="crumbs"><a href="#/">المتاحف</a> <span aria-hidden="true">‹</span> ${esc(m.region)}</nav>
+            <span class="tag ${m.tour}">${TOUR[m.tour]}</span>
+            <h1>${esc(m.name)}</h1>
+            <p class="fr" dir="ltr" lang="fr">${esc(m.fr)}</p>
+            <p class="lead">${esc(m.lead)}</p>
+            <a class="btn primary" href="#tour-box" id="go-tour">ادخل الجولة 360°</a>
+          </div>
+          ${m.img ? `<p class="hero-credit">تصوير ${esc(m.img[1])}، ${esc(m.img[2])}</p>` : ""}
         </header>
 
-        <section class="tour" id="tour-box">
-          <div class="frame">
-            <iframe id="sv" title="جولة 360° — ${esc(m.name)}" src="${svUrl(m)}" loading="eager" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
-          </div>
-          <div class="tour-bar">
-            <p class="hint">اسحب بالفأرة أو بالإصبع للدوران 360°، واضغط على الأسهم البيضاء للتنقّل.${m.tour === "site" ? " هذه الجولة تبدأ من ساحة المتحف أو الموقع الأثري." : ""}</p>
-            <div class="btns">
-              <button id="fs" type="button">ملء الشاشة</button>
-              <button id="reset" type="button">إعادة إلى نقطة البداية</button>
-              <a class="btn" href="${mapsUrl(m)}" target="_blank" rel="noopener">الموقع على الخريطة</a>
+        <div class="wrap">
+          <section class="tour" id="tour-box">
+            <div class="frame">
+              <iframe id="sv" title="جولة 360° — ${esc(m.name)}" src="${svUrl(m)}" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
             </div>
-          </div>
-        </section>
-
-        <div class="cols">
-          <section class="story">
-            <h2>نبذة تاريخية</h2>
-            ${m.history.map((p) => `<p>${esc(p)}</p>`).join("")}
-            <h2>لا تفوّت</h2>
-            <ul class="hl">${m.highlights.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
+            <div class="tour-bar">
+              <p class="hint">اسحب بالفأرة أو بالإصبع للدوران 360°، واضغط على الأسهم البيضاء للتنقّل.${m.tour === "site" ? " هذه الجولة تبدأ من ساحة المتحف أو الموقع الأثري." : ""}</p>
+              <div class="btns">
+                <button id="fs" type="button">ملء الشاشة</button>
+                <button id="reset" type="button">العودة إلى نقطة البداية</button>
+                <a class="btn" href="${mapsUrl(m)}" target="_blank" rel="noopener">الموقع على الخريطة</a>
+              </div>
+            </div>
           </section>
-          <aside class="facts">
-            <h2>بطاقة المتحف</h2>
-            <dl>
-              <dt>المكان</dt><dd>${esc(m.city)}</dd>
-              <dt>الجهة</dt><dd>${esc(m.region)}</dd>
-              <dt>التأسيس</dt><dd>${esc(m.founded)}</dd>
-              <dt>الحقب المعروضة</dt><dd>${esc(m.era)}</dd>
-              <dt>التصنيف</dt><dd>${esc(CATS[m.cat])}</dd>
-            </dl>
-          </aside>
-        </div>
 
-        <nav class="pager">
-          <a href="#/m/${prev.id}"><small>السابق</small>${esc(prev.name)}</a>
-          <a href="#/m/${next.id}"><small>التالي</small>${esc(next.name)}</a>
-        </nav>
+          <div class="cols">
+            <section class="story">
+              <h2>نبذة تاريخية</h2>
+              ${m.history.map((p) => `<p>${esc(p)}</p>`).join("")}
+              <h2>لا تفوّت</h2>
+              <ul class="hl">${m.highlights.map((h) => `<li>${esc(h)}</li>`).join("")}</ul>
+            </section>
+            <aside class="facts">
+              <h2>بطاقة المتحف</h2>
+              <dl>
+                <dt>المكان</dt><dd>${esc(m.city)}</dd>
+                <dt>الجهة</dt><dd>${esc(m.region)}</dd>
+                <dt>التأسيس</dt><dd>${esc(m.founded)}</dd>
+                <dt>الحقب المعروضة</dt><dd>${esc(m.era)}</dd>
+                <dt>التصنيف</dt><dd>${esc(CATS[m.cat])}</dd>
+              </dl>
+            </aside>
+          </div>
+
+          <nav class="pager" aria-label="متاحف أخرى">
+            <a href="#/m/${prev.id}"><small>المتحف السابق</small>${esc(prev.name)}</a>
+            <a href="#/m/${next.id}"><small>المتحف التالي</small>${esc(next.name)}</a>
+          </nav>
+        </div>
       </article>`;
+    document.getElementById("go-tour").addEventListener("click", (e) => {
+      e.preventDefault(); document.getElementById("tour-box").scrollIntoView({ behavior: "smooth" });
+    });
     document.getElementById("fs").addEventListener("click", () => {
       const el = document.querySelector("#tour-box .frame");
       if (document.fullscreenElement) document.exitFullscreen();
       else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
     });
     document.getElementById("reset").addEventListener("click", () => {
-      const f = document.getElementById("sv"); f.src = svUrl(m);
+      document.getElementById("sv").src = svUrl(m);
     });
   }
 
@@ -151,26 +215,54 @@
     app.innerHTML = `
       <article class="page">
         <h1>عن الموقع</h1>
-        <p>«متاحف تونس» دليل تاريخي يعرّف بأهم المتاحف التونسية ويتيح زيارتها افتراضياً بزاوية 360 درجة.</p>
+        <p class="lead">«متاحف تونس» دليل تاريخي يعرّف بأهم المتاحف التونسية ويتيح زيارتها افتراضياً بزاوية 360 درجة.</p>
         <h2>كيف تعمل الجولات؟</h2>
         <p>تُعرض الجولات مباشرة من Google Street View، وهي صور بانورامية التقطها Google أو زوّار المتاحف أنفسهم. لذلك تحتاج إلى اتصال بالإنترنت، وتختلف التغطية من متحف إلى آخر: بعض المتاحف مصوّرة من داخل القاعات، وأخرى من الساحة أو الموقع الأثري فقط، وقد ميّزنا ذلك بشارة على كل بطاقة.</p>
-        <h2>إضافة متحف</h2>
-        <p>كل البيانات في الملف <code dir="ltr">js/museums.js</code>. يكفي نسخ عنصر وتغيير الاسم والنصوص والإحداثيات <code dir="ltr">lat / lng</code> لنقطة فيها صورة 360° على خرائط Google.</p>
-        <p><a href="#/">← العودة إلى المتاحف</a></p>
+        <h2>المحتوى</h2>
+        <p>النصوص التاريخية موجزة وغايتها التعريف. الصور من ويكيميديا كومنز برخص حرّة، وأسماء مصوّريها في صفحة <a href="#/credits">حقوق الصور</a>.</p>
+        <h2>التصميم</h2>
+        <p>صمّم هذا الموقع مروان سليماني.</p>
+        <p><a class="btn" href="#/">العودة إلى المتاحف</a></p>
+      </article>`;
+  }
+
+  function credits() {
+    document.title = "حقوق الصور — متاحف تونس";
+    const H = window.HERO_IMG;
+    const row = (label, im) => `<tr><td>${esc(label)}</td><td>${esc(im[1])}</td><td>${esc(im[2])}</td><td><a href="${filePage(im[0])}" target="_blank" rel="noopener">المصدر</a></td></tr>`;
+    app.innerHTML = `
+      <article class="page wide">
+        <h1>حقوق الصور</h1>
+        <p class="lead">كل الصور من ويكيميديا كومنز وتُستعمل وفق رخصها. الجولات 360° من Google Street View.</p>
+        <div class="tablewrap"><table>
+          <thead><tr><th>الصورة</th><th>المصوّر</th><th>الرخصة</th><th>الملف الأصلي</th></tr></thead>
+          <tbody>
+            ${row("الواجهة: فسيفساء فيرجيل", H)}
+            ${M.filter((m) => m.img).map((m) => row(m.name, m.img)).join("")}
+          </tbody>
+        </table></div>
+        <p>الخريطة: © المساهمون في OpenStreetMap.</p>
+        <p><a class="btn" href="#/">العودة إلى المتاحف</a></p>
       </article>`;
   }
 
   function notFound() {
-    app.innerHTML = `<article class="page"><h1>الصفحة غير موجودة</h1><p><a href="#/">← العودة إلى المتاحف</a></p></article>`;
+    app.innerHTML = `<article class="page"><h1>الصفحة غير موجودة</h1><p><a class="btn" href="#/">العودة إلى المتاحف</a></p></article>`;
   }
 
   function route() {
     const h = location.hash.replace(/^#\/?/, "");
-    if (!h) home();
-    else if (h === "about") about();
+    let nav = "home";
+    if (map) { map.remove(); map = null; }
+    if (!h) home(false);
+    else if (h === "map") { home(true); nav = "map"; }
+    else if (h === "about") { about(); nav = "about"; }
+    else if (h === "credits") { credits(); nav = ""; }
     else if (h.startsWith("m/")) museum(decodeURIComponent(h.slice(2)));
+    else if (h === "tour-box") return;
     else notFound();
-    window.scrollTo(0, 0);
+    document.querySelectorAll(".topbar nav a").forEach((a) => a.classList.toggle("on", a.dataset.nav === nav));
+    if (h !== "map") window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
   route();

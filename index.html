@@ -3,34 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>متاحف تونس — جولات 360°</title>
-<meta name="description" content="موقع تاريخي للمتاحف التونسية مع جولة افتراضية 360° داخل كل متحف.">
+<title>متاحف تونس — جولات افتراضية 360°</title>
+<meta name="description" content="دليل تاريخي لمتاحف تونس مع جولة افتراضية 360° داخل كل متحف: باردو، قرطاج، سوسة، الجم، جربة وغيرها.">
+<meta name="author" content="مروان سليماني">
+<meta name="theme-color" content="#14222e">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ar_TN">
+<meta property="og:title" content="متاحف تونس — جولات افتراضية 360°">
+<meta property="og:description" content="تجوّل داخل متاحف تونس بزاوية 360 درجة، مع نبذة تاريخية عن كل متحف.">
+<meta property="og:image" content="https://commons.wikimedia.org/wiki/Special:FilePath/Carthage%20Room%20Bardo.jpg?width=1200">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%2314222e'/%3E%3Cpath transform='translate(6 6) scale(.7)' d='M20 2l5.3 7.2 8.8-1.4-1.4 8.8L40 20l-7.3 3.4 1.4 8.8-8.8-1.4L20 38l-5.3-7.2-8.8 1.4 1.4-8.8L0 20l7.3-3.4-1.4-8.8 8.8 1.4z' fill='%23d9a441'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<a class="skip" href="#app">تخطَّ إلى المحتوى</a>
 
 <header class="topbar">
   <a class="brand" href="#/">
     <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2l5.3 7.2 8.8-1.4-1.4 8.8L40 20l-7.3 3.4 1.4 8.8-8.8-1.4L20 38l-5.3-7.2-8.8 1.4 1.4-8.8L0 20l7.3-3.4-1.4-8.8 8.8 1.4z"/></svg>
     <span>متاحف تونس</span>
   </a>
-  <nav>
-    <a href="#/">المتاحف</a>
-    <a href="#/about">عن الموقع</a>
+  <nav aria-label="التنقل الرئيسي">
+    <a href="#/" data-nav="home">المتاحف</a>
+    <a href="#/map" data-nav="map">الخريطة</a>
+    <a href="#/about" data-nav="about">عن الموقع</a>
   </nav>
 </header>
 
 <main id="app" tabindex="-1"></main>
 
 <footer class="foot">
+  <div class="foot-in">
+    <div>
+      <p class="foot-brand">متاحف تونس</p>
+      <p>دليل تاريخي وجولات افتراضية 360° داخل المتاحف والمواقع الأثرية التونسية.</p>
+    </div>
+    <div>
+      <p class="foot-h">روابط</p>
+      <p><a href="#/">كل المتاحف</a></p>
+      <p><a href="#/map">الخريطة</a></p>
+      <p><a href="#/about">عن الموقع</a></p>
+      <p><a href="#/credits">حقوق الصور</a></p>
+    </div>
+    <div>
+      <p class="foot-h">تنويه</p>
+      <p>الجولات معروضة عبر Google Street View وحقوقها لأصحابها. النصوص موجزة للتعريف، ويُنصح بالتثبّت من أوقات الزيارة قبل التنقل.</p>
+    </div>
+  </div>
   <p class="credit">هذا الموقع من تصميم <strong>مروان سليماني</strong></p>
-  <p>الجولات 360° معروضة عبر Google Street View، وحقوق الصور لأصحابها المذكورين داخل كل جولة.</p>
-  <p>النصوص التاريخية موجزة للتعريف، ويُنصح بالتثبّت من أوقات الزيارة لدى المعهد الوطني للتراث قبل التنقل.</p>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="js/museums.js"></script>
 <script src="js/app.js"></script>
 </body>
